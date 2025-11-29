@@ -7,7 +7,7 @@ const execPromise = promisify(exec);
 
 /**
  * Comprehensive list of metadata types that WILL be cleared:
- * 
+ *
  * EXIF Metadata:
  * - Camera settings (ISO, aperture, shutter speed, focal length)
  * - Device information (make, model, serial number)
@@ -15,38 +15,38 @@ const execPromise = promisify(exec);
  * - Image settings (orientation, resolution, color space)
  * - Flash and exposure settings
  * - White balance and color temperature
- * 
+ *
  * GPS/Location Data:
  * - Latitude and longitude coordinates
  * - Altitude and direction
  * - GPS timestamp
  * - Location names and addresses
- * 
+ *
  * IPTC Metadata:
  * - Copyright information
  * - Keywords and tags
  * - Caption and description
  * - Creator and contact information
  * - Location names
- * 
+ *
  * XMP Metadata:
  * - Adobe-specific metadata
  * - Rating and labels
  * - History and edit information
  * - Custom metadata fields
- * 
+ *
  * Document Metadata:
  * - PDF author, creator, producer information
  * - Word document properties (author, company, etc.)
  * - Office document metadata
  * - Document revision history
- * 
+ *
  * Audio/Video Metadata:
  * - ID3 tags (artist, album, genre, etc.)
  * - Video codec and encoding information
  * - Audio bitrate and format details
  * - Playlist and chapter information
- * 
+ *
  * Other Embedded Data:
  * - Thumbnails and preview images
  * - ICC color profiles
@@ -54,22 +54,22 @@ const execPromise = promisify(exec);
  * - Comments and annotations
  * - Software and application information
  * - Resource forks (macOS)
- * 
+ *
  * System Metadata (macOS):
  * - Extended attributes (xattr)
  * - Finder tags and labels
  * - Spotlight metadata
  * - File ownership (user/group) - if permissions allow
- * 
- * 
+ *
+ *
  * Metadata types that are NOT cleared (by design):
- * 
+ *
  * File System Metadata (preserved for functionality):
  * - File permissions (read/write/execute) - needed for file access
  * - File creation date - filesystem limitation (cannot be changed on macOS)
  * - File size - inherent to file content
  * - File type/extension - needed for file identification
- * 
+ *
  * Note: File modification date IS cleared (set to current time when cleared).
  * File ownership clearing requires appropriate permissions.
  * If you don't have permission to change ownership, that step will be skipped.
@@ -103,17 +103,14 @@ async function getExifToolPath(): Promise<string | null> {
 async function isPackageManagerInstalled(): Promise<boolean> {
   if (process.platform === "win32") {
     // Check for Chocolatey on Windows - check common paths first
-    const chocoPaths = [
-      "C:\\ProgramData\\chocolatey\\bin\\choco.exe",
-      "C:\\Program Files\\chocolatey\\bin\\choco.exe",
-    ];
-    
+    const chocoPaths = ["C:\\ProgramData\\chocolatey\\bin\\choco.exe", "C:\\Program Files\\chocolatey\\bin\\choco.exe"];
+
     for (const path of chocoPaths) {
       if (existsSync(path)) {
         return true;
       }
     }
-    
+
     // Fallback: try to execute choco command
     try {
       await execPromise("choco --version");
@@ -122,20 +119,16 @@ async function isPackageManagerInstalled(): Promise<boolean> {
       return false;
     }
   }
-  
+
   // Check for Homebrew on macOS - check common paths first (more reliable)
-  const brewPaths = [
-    "/opt/homebrew/bin/brew",
-    "/usr/local/bin/brew",
-    "/homebrew/bin/brew",
-  ];
-  
+  const brewPaths = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew", "/homebrew/bin/brew"];
+
   for (const path of brewPaths) {
     if (existsSync(path)) {
       return true;
     }
   }
-  
+
   // Fallback: try to execute brew command (checks PATH)
   try {
     await execPromise("brew --version");
@@ -147,18 +140,14 @@ async function isPackageManagerInstalled(): Promise<boolean> {
 
 async function getBrewPath(): Promise<string> {
   // Check common Homebrew paths first
-  const brewPaths = [
-    "/opt/homebrew/bin/brew",
-    "/usr/local/bin/brew",
-    "/homebrew/bin/brew",
-  ];
-  
+  const brewPaths = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew", "/homebrew/bin/brew"];
+
   for (const path of brewPaths) {
     if (existsSync(path)) {
       return path;
     }
   }
-  
+
   // Fallback to command name
   return "brew";
 }
@@ -204,7 +193,7 @@ export default async function main() {
     if (!exifToolPath) {
       // Check if package manager is installed
       const hasPackageManager = await isPackageManagerInstalled();
-      
+
       if (!hasPackageManager) {
         // Package manager not installed - show installation instructions
         let installCommand: string;
@@ -212,9 +201,10 @@ export default async function main() {
         let description: string;
         let steps: string[];
         let buttonText: string;
-        
+
         if (process.platform === "win32") {
-          installCommand = 'Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString(\'https://community.chocolatey.org/install.ps1\'))';
+          installCommand =
+            "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))";
           title = "Install Chocolatey";
           description = "Chocolatey helps us install the tools needed to clear file metadata.";
           steps = [
@@ -226,7 +216,8 @@ export default async function main() {
           ];
           buttonText = "Copy Command";
         } else {
-          installCommand = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"';
+          installCommand =
+            '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"';
           title = "Install Homebrew";
           description = "Homebrew helps us install the tools needed to clear file metadata.";
           steps = [
@@ -238,15 +229,15 @@ export default async function main() {
           ];
           buttonText = "Open Terminal";
         }
-        
+
         const installMessage = `${description}\n\n📋 Installation Steps:\n${steps.map((step, i) => `\n${i + 1}. ${step}`).join("")}\n\n💻 Command to run:\n${installCommand}`;
-        
+
         const action = await confirmAlert({
           title: title,
           message: installMessage,
-          primaryAction: { 
-            title: buttonText, 
-            style: Alert.ActionStyle.Default 
+          primaryAction: {
+            title: buttonText,
+            style: Alert.ActionStyle.Default,
           },
           dismissAction: { title: "Cancel", style: Alert.ActionStyle.Cancel },
         });
@@ -257,7 +248,9 @@ export default async function main() {
             await Clipboard.copy(installCommand);
             try {
               // Open Terminal and wait a moment, then paste
-              await execPromise(`osascript -e 'tell application "Terminal" to activate' -e 'delay 0.5' -e 'tell application "System Events" to keystroke "v" using command down'`);
+              await execPromise(
+                `osascript -e 'tell application "Terminal" to activate' -e 'delay 0.5' -e 'tell application "System Events" to keystroke "v" using command down'`,
+              );
               await showToast({
                 style: Toast.Style.Success,
                 title: "Terminal opened",
@@ -298,7 +291,7 @@ export default async function main() {
       }
 
       // Show progress toast
-      const progressToast = await showToast({
+      await showToast({
         style: Toast.Style.Animated,
         title: "Installing...",
         message: "This may take a minute",
@@ -345,7 +338,7 @@ export default async function main() {
     }
 
     // Show progress toast
-    const progressToast = await showToast({
+    await showToast({
       style: Toast.Style.Animated,
       title: "Clearing metadata...",
       message: `Processing ${selectedItems.length} ${selectedItems.length === 1 ? "file" : "files"}`,
@@ -357,7 +350,7 @@ export default async function main() {
     for (const item of selectedItems) {
       const file = item.path;
       const fileName = file.split("/").pop() || file.split("\\").pop() || file;
-      
+
       try {
         // Update progress message
         await showToast({
@@ -375,14 +368,14 @@ export default async function main() {
             await execPromise(`xattr -d com.apple.quarantine "${file}" 2>/dev/null || true`);
             await execPromise(`xattr -d com.apple.FinderInfo "${file}" 2>/dev/null || true`);
             await execPromise(`xattr -d com.apple.ResourceFork "${file}" 2>/dev/null || true`);
-            
+
             // Clear resource fork (macOS legacy metadata storage)
             try {
               await execPromise(`rm -f "${file}/..namedfork/rsrc" 2>/dev/null || true`);
             } catch {
               // Resource fork may not exist, continue
             }
-            
+
             // Clear file ownership (requires appropriate permissions)
             // This will change ownership to current user if possible
             try {
@@ -392,7 +385,7 @@ export default async function main() {
               // May not have permission to change ownership, skip silently
               console.log("File ownership unchanged (permission required)");
             }
-          } catch (error) {
+          } catch {
             // Some attributes might not exist, continue anyway
             console.log("Extended attributes cleared (some may not have existed)");
           }
@@ -403,12 +396,14 @@ export default async function main() {
             // Clear file ownership (requires admin rights)
             try {
               const currentUser = process.env.USERNAME || process.env.USER || "Everyone";
-              await execPromise(`powershell -Command "TakeOwn /F '${file}' /A 2>$null; icacls '${file}' /setowner '${currentUser}' /T 2>$null"`);
+              await execPromise(
+                `powershell -Command "TakeOwn /F '${file}' /A 2>$null; icacls '${file}' /setowner '${currentUser}' /T 2>$null"`,
+              );
             } catch {
               // May not have permission, skip silently
               console.log("File ownership unchanged (admin rights required)");
             }
-          } catch (error) {
+          } catch {
             console.log("Windows metadata cleared");
           }
         }
@@ -431,12 +426,12 @@ export default async function main() {
         // -QuickTime:all= removes QuickTime metadata
         // -overwrite_original modifies file in place (no backup)
         // -q quiet mode (suppresses output)
-        
+
         const comprehensiveCommand = `"${exifToolPath}" -all= -EXIF:all= -GPS:all= -IPTC:all= -XMP:all= -ICC_Profile:all= -ThumbnailImage= -PreviewImage= -Comment= -MakerNotes= -UserComment= -PDF:all= -ID3:all= -QuickTime:all= -overwrite_original -q "${file}"`;
-        
+
         try {
           await execPromise(comprehensiveCommand);
-        } catch (error) {
+        } catch {
           // If comprehensive command fails, try simpler fallback
           try {
             await execPromise(`"${exifToolPath}" -all= -overwrite_original -q "${file}"`);
@@ -457,13 +452,13 @@ export default async function main() {
             // -m flag updates only modification time to current time
             await execPromise(`touch -m "${file}"`);
           }
-        } catch (error) {
+        } catch {
           // If touch fails, try without -m flag as fallback
           try {
             if (process.platform !== "win32") {
               await execPromise(`touch "${file}"`);
             }
-          } catch (fallbackError) {
+          } catch {
             console.log("File modification date update failed - file may retain original date");
           }
         }
